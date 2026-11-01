@@ -74,7 +74,7 @@ import shop as S
 KINDS = {'tarot': ('Tarot deck', 'Tarot decks'), 'oracle': ('Oracle deck', 'Oracle decks'), 'lenormand': ('Lenormand deck', 'Lenormand & Kipper'),
          'set': ('Deck and book set', 'Deck & book sets'), 'bag': ('Bag or pouch', 'Bags & pouches'), 'cloth': ('Reading cloth', 'Reading cloths'),
          'box': ('Deck box', 'Boxes'), 'stand': ('Card stand', 'Card stands'), 'talisman': ('Talisman', 'Talismans & extras'),
-         'journal': ('Journal', 'Journals'), 'book': ('Tarot book', 'Tarot books')}
+         'journal': ('Journal', 'Journals'), 'book': ('Tarot book', 'Tarot books'), 'chart': ('Chart or calendar', 'Charts & calendars'), 'decor': ('Tarot banner', 'Tarot banners')}
 STYLES = [('rider-waite-smith-tarot-decks', 'Rider-Waite-Smith'), ('thoth-crowley-tarot-decks', 'Thoth'), ('tarot-de-marseille-decks', 'Marseille'),
           ('pocket-tarot', 'Pocket size'), ('pocket-oracle', 'Pocket size'), ('beginner-tarot', 'Good first deck'), ('start-your-tarot-journey', 'Good first deck'),
           ('animal-nature-tarot-decks', 'Animals and nature'), ('astrology-celestial-tarot-decks', 'Stars and planets'), ('dark-gothic-shadow-tarot-decks', 'Dark and gothic'),
@@ -85,6 +85,13 @@ NOT_TAROT = ('Candle', 'Candles', 'Wall Hanging', 'Pendant', 'Keychain', 'Neckla
 TAROTISH = r'\b(tarot|lenormand|kipper|cartomancy|oracle cards?|major arcana)\b'
 def SELECT(p, C):
     t = p['title']; ty = (p.get('product_type') or '').strip(); h = p['handle']; tl = t.lower(); inc = lambda c: h in C.get(c, ())
+    if ty == 'Wall Hanging' and 'tarot' in tl: return 'decor'
+    if ty in ('Almanacs & Calendars', 'Info Charts', 'Info Guides') and 'tarot' in tl: return 'chart'
+    if ty == 'Keychain' and 'tarot' in tl: return 'tarot'
+    if ty == 'Home Decor' and 'tarot talisman' in tl: return 'talisman'
+    if ty == 'Home Decor' and re.search(r'guide to the .*tarot|companion guide to the tarot', tl): return 'book'
+    if ty == 'Dream Oracle Deck' or h == 'syzygy-oracle': return 'oracle'
+    if ty == 'Tarot Book' and re.search(r"fool's pilgrimage|divine your dinner", tl): return 'book'
     if ty in NOT_TAROT or re.search(r'\bmins? reading with\b|gift card|wholesale|display of \d+ (decks|pcs)', tl): return None
     if re.search(r'altar cloth|tarot cloth|reading cloth', tl): return 'cloth'
     if re.search(r'card (holder|stand)|tarot (holder|stand)|deck stand|card easel', tl): return 'stand'
@@ -109,7 +116,8 @@ SHELVES = [('decks', '/decks/', ('tarot',), 'Tarot decks', 'Tarot Decks', 'Every
            ('sets', '/deck-and-book-sets/', ('set',), 'Deck & book sets', 'Tarot Deck and Book Sets', 'A deck boxed with a full book, not just a pamphlet. A good way to start, or to learn a new system properly.'),
            ('table', '/reading-table/', ('cloth', 'bag', 'box', 'stand', 'talisman'), 'Reading table', 'For the Reading Table', 'Cloths to lay a spread on, pouches and boxes to keep a deck in, stands that hold a card up, and a few talismans.'),
            ('journals', '/journals/', ('journal',), 'Journals', 'Tarot Journals', 'Blank and guided journals for logging your daily card, your spreads and what came of them.'),
-           ('books', '/books/', ('book',), 'Tarot books', 'Tarot Books', 'Books for reading the cards: card-by-card guides, spreads, reversals, history and the big reference works.')]
+           ('banners', '/tarot-banners/', ('decor',), 'Tarot banners', 'Tarot Card Wall Banners', 'Major Arcana cards printed large on 12 by 18 inch hanging banners, for a reading nook or an altar wall.'),
+           ('books', '/books/', ('book', 'chart'),'Tarot books', 'Tarot Books', 'Books for reading the cards: card-by-card guides, spreads, reversals, history and the big reference works.')]
 SHELF_OF = {k: sh for sh in SHELVES for k in sh[2]}
 def p_intro(x):
     k = x['kind']
@@ -136,8 +144,9 @@ def shop_pages():
                 h1, f'<p>{intro}</p>', its, KINDS, [('Home', '/'), ('Shop', '/shop/'), (label, path)])
         for x in its:
             S.product_page(x, slug, label, path, its, [('Home', '/'), ('Shop', '/shop/')], p_intro(x), meta=p_meta(x))
+    S.search_page('/shop/')
     hub = ('<section class="shop"><div class="shead"><h1>The Namaste Tarot shop</h1><p>Decks, books and the things that go around them. '
-           'Add anything to your cart from the shelf or the product page; checkout is one secure step at the end.</p></div><ul class="shelves">'
+           'Add anything to your cart from the shelf or the product page; checkout is one secure step at the end.</p></div>' + S.search_box('Search decks, books and accessories') + '<ul class="shelves">'
            + ''.join(f'<li><a href="{path}"><b>{label}</b><span>{len(by.get(slug, []))} items, {sum(x["avail"] for x in by.get(slug, []))} in stock</span></a></li>' for slug, path, _, label, _, _ in SHELVES)
            + '</ul><h2>New on the shelf</h2><ul class="grid">' + ''.join(S.card(x, SHELF_OF[x['kind']][0]) for x in sorted([x for x in items if x['avail'] and x['img'] and x['kind'] in ('tarot', 'oracle', 'set')], key=lambda x: x['created'], reverse=True)[:8]) + '</ul></section>')
     G.add('/shop/', 'Shop Tarot Decks, Oracle Cards & Tarot Books | Namaste Tarot', f'Shop {sum(x["avail"] for x in items)} tarot decks, oracle decks, deck and book sets, journals, tarot books and reading-table goods at Namaste Tarot.', hub,
