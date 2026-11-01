@@ -1,5 +1,5 @@
 """Namaste Tarot: a Manhattan tarot house. Angle: sit for a tarot reading, then take home a deck and the reading-table things, from our own on-site shop."""
-import json, os
+import json, os, re
 import engine as G
 E = G.E
 BUSINESS_TYPE = 'Store'
@@ -9,9 +9,9 @@ ORG_DESC = 'Namaste Tarot is a tarot house in Manhattan: tarot readings on West 
 LLMS_NOTE = ('Namaste Tarot is a tarot reading and tarot goods brand operated by Wealth Edge Ventures Inc. Readings take place inside Namaste Bookshop, 2 West 14th Street, New York. '
              'Each reader has a profile on this site and is reserved on their Square scheduling page. Products have pages and a cart on this site; checkout and shipping are handled by Namaste Bookshop\'s Shopify store, and prices refresh daily.')
 R = json.load(open(os.path.join(os.path.dirname(__file__), 'readers.json')))
-NAV = [('/readings/', 'Readings'), ('/readers/', 'Readers'), ('/decks/', 'Decks'), ('/reading-table/', 'Reading table'), ('/about/', 'About')]
+NAV = [('/readings/', 'Readings'), ('/readers/', 'Readers'), ('/shop/', 'Shop'), ('/decks/', 'Tarot decks'), ('/oracle-decks/', 'Oracle'), ('/books/', 'Books'), ('/reading-table/', 'Reading table'), ('/about/', 'About')]
 CART = True
-SHOP_PATH = '/decks/'
+SHOP_PATH = '/shop/'
 PAIR_TITLE = 'For the reading table'
 
 def shell(pg):
@@ -24,22 +24,18 @@ def shell(pg):
             f'<p><a href="tel:{G.TEL}">{G.PHONE}</a><br><a href="mailto:{G.EMAIL}">{G.EMAIL}</a></p></div>'
             f'<div class="fcol"><b>Hours</b><p>' + '<br>'.join(f'{d}: {h}' for d, h in G.HOURS) + '</p></div>'
             f'<div class="fcol"><b>Where</b><p>Inside Namaste Bookshop, {G.ADDR}. Operated by Wealth Edge Ventures Inc.</p><p><a href="/about/">About</a> &middot; <a href="/privacy/">Privacy</a></p></div></footer>'
-            f'<div class="dock"><a href="/readers/">Book a reading</a><a href="tel:{G.TEL}">Call</a></div></body></html>')
+            + ('' if pg['path'].startswith('/products/') else f'<div class="dock"><a href="/readers/">Book a reading</a><a href="tel:{G.TEL}">Call</a></div>') + '</body></html>')
 
 def reader_card(k, line):
     r = R[k]
-    return (f'<li class="rc"><img src="{E(G.img(r["img"], 240))}" alt="{E(r["name"])}" width="96" height="96" loading="lazy">'
+    return (f'<li class="rc"><img src="{E(G.headshot(k, 240))}" alt="{E(r["name"])}" width="96" height="96" loading="lazy">'
             f'<div><h3>{E(r["name"])}</h3><p>{line}</p><p class="from">From ${r["from"]}</p>'
             f'<a class="pill" href="/readers/{k}/">Meet {E(r["name"].split()[0])}</a></div></li>')
-
-def card(x, cat):
-    return (f'<li class="pc"><img src="{E(G.img(x["img"], 400))}" alt="{E(x["t"])}" width="200" height="200" loading="lazy">'
-            f'<h3>{E(x["t"])}</h3><p class="price">{G.money(x["p"])}</p><a class="ghost sm" {G.buy_attrs(x, cat)}>Details</a>{G.atc(x, cat, "Add to cart", "buy")}</li>')
 
 READERS_BY_DECK = [
  ('Classic and Thoth decks', [
    ('casey-deamoira', 'Reads the Thoth deck and pairs it with Hellenistic astrology, so a session can look at your birth chart, your current transits, or both.'),
-   ('anthony-fusco', 'Has worked with the Voyager Tarot for a quarter century and is known for business, love and timing questions.'),
+   ('anthony-fusco', 'Has worked with the Voyager Tarot for 25 years and is known for business, love and timing questions.'),
    ('damon-stang', 'A master tarot reader steeped in folk magic, with a long professional career and press coverage behind him.'),
    ('mychal-a-bryan', 'Reads Qabalistic tarot in one-hour sessions, alongside traditional astrology.')]),
  ('Cards with a second system', [
@@ -65,7 +61,7 @@ def reader_pages():
     for k, h in GROUP_OF.items():
         r = R[k]; first = r['name'].split()[0]
         where = {'bookshop': f'at the tables inside Namaste Bookshop, {G.ADDR}', 'upstairs': f'in a private room at {G.HC_STREET}', 'both': 'at the 14th Street tables or upstairs in Suite 1104, depending on the day', 'remote': 'remotely for now'}[r['home']]
-        body = (f'<section class="page"><div class="rhead"><img src="{E(G.img(r["img"], 400))}" alt="{E(r["name"])}" width="150" height="150"><div><p class="eyebrow">{E(h)}</p><h1>{E(r["name"])}</h1></div></div>'
+        body = (f'<section class="page"><div class="rhead"><img src="{E(G.headshot(k, 400))}" alt="{E(r["name"])}" width="150" height="150"><div><p class="eyebrow">{E(h)}</p><h1>{E(r["name"])}</h1></div></div>'
                 f'<p class="lede">{E(LINE_OF[k])}</p><p>{E(first)} reads {where}.' + (' Phone sessions are available too.' if r['phone'] else '') + '</p>'
                 f'<h2>Sessions</h2>{G.services_list(k, "inline")}'
                 f'<p><a class="pill big" href="{E(r["book"])}" rel="nofollow noopener">Book {E(first)}</a></p>'
@@ -74,34 +70,86 @@ def reader_pages():
         G.add(f'/readers/{k}/', f'{r["name"]}: Tarot Readings | Namaste Tarot', f'{r["name"]} reads tarot with Namaste Tarot in Manhattan. {LINE_OF[k]} From ${r["from"]}.', body,
               ld=[G.person_ld(k, f'/readers/{k}/')], crumbs=[('Home', '/'), ('Readers', '/readers/'), (r['name'], f'/readers/{k}/')])
 
-def product_desc(x, shelf):
-    if shelf == 'Decks': return f"{x['t']}: a tarot deck from the Namaste Tarot shelf, {G.money(x['p'])}. Add it to your cart and it ships from New York."
-    return f"{x['t']}: a reading-table piece from Namaste Tarot, {G.money(x['p'])}. Add it to your cart and it ships from New York."
-
-def product_body(x, cat, shelf, path):
-    t = x['t']; v = x.get('vendor') or ''
-    if cat == 'decks':
-        why = ('A good first deck if you are learning, since most guidebooks are written around this imagery.' if 'rider' in t.lower() or 'waite' in t.lower()
-               else 'Pick the deck whose pictures you want to keep looking at; that matters more than which one is "right".')
-        notes = f'<p>{why}</p>'
-    else:
-        notes = '<p>None of this is needed to read tarot. It just keeps cards clean, carried well, or standing up where you can see them while you think.</p>'
-    facts = ''.join(f'<li><b>{a}</b> {E(b)}</li>' for a, b in [('Maker', v), ('SKU', x.get('sku') or ''), ('Barcode', x.get('gtin') or '')] if b)
-    return (f'<section class="page prod"><div class="pimg"><img src="{E(G.img(x["img"], 800))}" alt="{E(t)}" width="400" height="400"></div><div>'
-            f'<p class="eyebrow">{shelf}</p><h1>{E(t)}</h1><p class="price big">{G.money(x["p"])}</p>{G.atc(x, cat, "Add to cart", "pill big", True)}'
-            f'{notes}<ul class="facts">{facts}</ul><p class="small">Ships from New York. Price checked daily; if it sells out it leaves the shelf. <a href="{path}">Back to {shelf.lower()}</a></p></div></section>')
+import shop as S
+KINDS = {'tarot': ('Tarot deck', 'Tarot decks'), 'oracle': ('Oracle deck', 'Oracle decks'), 'lenormand': ('Lenormand deck', 'Lenormand & Kipper'),
+         'set': ('Deck and book set', 'Deck & book sets'), 'bag': ('Bag or pouch', 'Bags & pouches'), 'cloth': ('Reading cloth', 'Reading cloths'),
+         'box': ('Deck box', 'Boxes'), 'stand': ('Card stand', 'Card stands'), 'talisman': ('Talisman', 'Talismans & extras'),
+         'journal': ('Journal', 'Journals'), 'book': ('Tarot book', 'Tarot books')}
+STYLES = [('rider-waite-smith-tarot-decks', 'Rider-Waite-Smith'), ('thoth-crowley-tarot-decks', 'Thoth'), ('tarot-de-marseille-decks', 'Marseille'),
+          ('pocket-tarot', 'Pocket size'), ('pocket-oracle', 'Pocket size'), ('beginner-tarot', 'Good first deck'), ('start-your-tarot-journey', 'Good first deck'),
+          ('animal-nature-tarot-decks', 'Animals and nature'), ('astrology-celestial-tarot-decks', 'Stars and planets'), ('dark-gothic-shadow-tarot-decks', 'Dark and gothic'),
+          ('goddess-divine-feminine-tarot-decks', 'Goddess'), ('love-relationship-tarot-decks', 'Love'), ('whimsical-lighthearted-tarot-decks', 'Playful'),
+          ('witchy-magical-tarot-decks', 'Witchy'), ('angel-oracle-cards', 'Angels')]
+COLLECTIONS = sorted({c for c, _ in STYLES} | {'tarot-books', 'tarot-cards-decks', 'oracle-cards-1', 'tarot-kits-learning-sets', 'lenormand-cards-decks', 'kipper-cards-decks', 'most-popular-tarot-decks'})
+NOT_TAROT = ('Candle', 'Candles', 'Wall Hanging', 'Pendant', 'Keychain', 'Necklace', 'Ring', 'Earrings', 'Statue', 'Info Charts', 'Almanacs & Calendars', 'Daily Reader', 'Readings')
+TAROTISH = r'\b(tarot|lenormand|kipper|cartomancy|oracle cards?|major arcana)\b'
+def SELECT(p, C):
+    t = p['title']; ty = (p.get('product_type') or '').strip(); h = p['handle']; tl = t.lower(); inc = lambda c: h in C.get(c, ())
+    if ty in NOT_TAROT or re.search(r'\bmins? reading with\b|gift card|wholesale|display of \d+ (decks|pcs)', tl): return None
+    if re.search(r'altar cloth|tarot cloth|reading cloth', tl): return 'cloth'
+    if re.search(r'card (holder|stand)|tarot (holder|stand)|deck stand|card easel', tl): return 'stand'
+    if ty in ('Bag', 'Bags & Pouches', 'Crystal Pouch') and not re.search(r'paper carry', tl): return 'bag'
+    if re.search(r'\b(pouch|bag)\b', tl) and re.search(r'tarot|velvet', tl) and ty not in ('books', 'Book', 'Tarot Deck', 'Oracle Cards', 'Oracle Deck'): return 'bag'
+    if ty == 'Wood Storage Box' and not re.search(r'bowl', tl): return 'box'
+    if ty in ('Tarot Talisman', 'Tarot Accessories'): return 'talisman'
+    if ty in ('Journal', 'Journals') or (re.search(r'journal', tl) and re.search(r'tarot', tl)):
+        return 'journal' if re.search(r'tarot|moon|dream|spell|pentacle|star|celestial|witch|grimoire|shadow|zodiac', tl) else None
+    is_book = ty in ('Tarot Book', 'books', 'Books', 'Book', 'Spiritual Book') or inc('tarot-books')
+    if is_book and re.search(r'\bkit\b|box set|deck (and|&) book|book (and|&) (deck|cards)|book set', tl) and re.search(TAROTISH, tl): return 'set'
+    if is_book: return 'book' if re.search(TAROTISH, tl) else None
+    if ty in ('Tarot Set', 'Tarot Kit') or inc('tarot-kits-learning-sets') or (ty in ('Tarot Deck', 'Oracle Cards', 'Oracle Deck') and re.search(r'\bkit\b|box set|deck (and|&) book\b|book (and|&) (deck|cards)|book set|commemorative set', tl)): return 'set'
+    if ty == 'Lenormand Deck' or inc('lenormand-cards-decks') or inc('kipper-cards-decks') or (re.search(r'lenormand|kipper', tl) and ty in ('Oracle Cards', 'Oracle Deck', 'Tarot Deck', 'Collectable Cards', 'Mini Deck')): return 'lenormand'
+    if ty in ('Oracle Cards', 'Oracle Deck', 'Inspirational Cards') or (ty in ('Collectable Cards', 'Mini Deck', '') and re.search(r'oracle|cards', tl) and 'tarot' not in tl): return 'oracle'
+    if ty in ('Tarot Deck', 'Mini Deck', 'Collectable Cards') or (ty == '' and 'tarot' in tl) or inc('tarot-cards-decks'): return 'tarot'
+    if inc('oracle-cards-1') and ty not in ('books',): return 'oracle'
+    return None
+SHELVES = [('decks', '/decks/', ('tarot',), 'Tarot decks', 'Tarot Decks', 'Every tarot deck on our shelf, from the classic Rider-Waite-Smith to pocket editions, Thoth and Marseille decks, and new art decks. Filter by style, price or publisher.'),
+           ('oracle', '/oracle-decks/', ('oracle',), 'Oracle decks', 'Oracle Decks', 'Oracle and affirmation decks. Each one has its own cards and rules, so the guidebook matters more here than with tarot.'),
+           ('lenormand', '/lenormand/', ('lenormand',), 'Lenormand & Kipper', 'Lenormand and Kipper Decks', 'Lenormand decks use 36 small cards that read in pairs and lines; Kipper decks are a related German fortune-telling deck with more cards for people and everyday events.'),
+           ('sets', '/deck-and-book-sets/', ('set',), 'Deck & book sets', 'Tarot Deck and Book Sets', 'A deck boxed with a full book, not just a pamphlet. A good way to start, or to learn a new system properly.'),
+           ('table', '/reading-table/', ('cloth', 'bag', 'box', 'stand', 'talisman'), 'Reading table', 'For the Reading Table', 'Cloths to lay a spread on, pouches and boxes to keep a deck in, stands that hold a card up, and a few talismans.'),
+           ('journals', '/journals/', ('journal',), 'Journals', 'Tarot Journals', 'Blank and guided journals for logging your daily card, your spreads and what came of them.'),
+           ('books', '/books/', ('book',), 'Tarot books', 'Tarot Books', 'Books for reading the cards: card-by-card guides, spreads, reversals, history and the big reference works.')]
+SHELF_OF = {k: sh for sh in SHELVES for k in sh[2]}
+def p_intro(x):
+    k = x['kind']
+    if k in ('tarot', 'oracle', 'lenormand', 'set'):
+        return ('<p class="pnote">Curious how a deck reads before you buy one? Sit for a <a href="/readings/">reading</a> and ask your reader what they like to use.</p>')
+    if k == 'book': return '<p class="pnote">Pairs well with any deck from our <a href="/decks/">tarot shelf</a>.</p>'
+    return '<p class="pnote">Made for keeping a deck in good shape; none of it is needed to read.</p>'
+def p_meta(x):
+    lab = KINDS[x['kind']][0]
+    t = x['name'] + (f' by {x["author"]}' if x['author'] and len(x['name']) + len(x['author']) < 58 else '') + f' | {lab} | Namaste Tarot'
+    d = (f'{x["name"]}' + (f' by {x["author"]}' if x['author'] else '') + f': {lab.lower()}' + (f', {x["cards"]} cards' if x['cards'] and x['kind'] != 'book' else '')
+         + f', {G.money(x["p"])}. ' + ('In stock; ships from New York City.' if x['avail'] else 'Sold out online right now; call to check the shelf.'))
+    return t, d
+def shop_pages():
+    prods, C = S.load(SELECT, COLLECTIONS)
+    S.set_collections(C)
+    items = S.build_items(prods, STYLES, ('most-popular-tarot-decks', 'beginner-tarot', 'rider-waite-smith-tarot-decks'))
+    by = {}
+    for x in items: by.setdefault(SHELF_OF[x['kind']][0], []).append(x)
+    for slug, path, kinds, label, h1, intro in SHELVES:
+        its = by.get(slug, [])
+        n_in = sum(x['avail'] for x in its)
+        S.shelf(path, slug, slug, f'{h1} ({n_in} in Stock) | Namaste Tarot', f'{intro.split(".")[0]}. {n_in} in stock at Namaste Tarot, with prices checked daily; ships from New York City.',
+                h1, f'<p>{intro}</p>', its, KINDS, [('Home', '/'), ('Shop', '/shop/'), (label, path)])
+        for x in its:
+            S.product_page(x, slug, label, path, its, [('Home', '/'), ('Shop', '/shop/')], p_intro(x), meta=p_meta(x))
+    hub = ('<section class="shop"><div class="shead"><h1>The Namaste Tarot shop</h1><p>Decks, books and the things that go around them. '
+           'Add anything to your cart from the shelf or the product page; checkout is one secure step at the end.</p></div><ul class="shelves">'
+           + ''.join(f'<li><a href="{path}"><b>{label}</b><span>{len(by.get(slug, []))} items, {sum(x["avail"] for x in by.get(slug, []))} in stock</span></a></li>' for slug, path, _, label, _, _ in SHELVES)
+           + '</ul><h2>New on the shelf</h2><ul class="grid">' + ''.join(S.card(x, SHELF_OF[x['kind']][0]) for x in sorted([x for x in items if x['avail'] and x['img'] and x['kind'] in ('tarot', 'oracle', 'set')], key=lambda x: x['created'], reverse=True)[:8]) + '</ul></section>')
+    G.add('/shop/', 'Shop Tarot Decks, Oracle Cards & Tarot Books | Namaste Tarot', f'Shop {sum(x["avail"] for x in items)} tarot decks, oracle decks, deck and book sets, journals, tarot books and reading-table goods at Namaste Tarot.', hub,
+          crumbs=[('Home', '/'), ('Shop', '/shop/')])
+    return items, by
 
 def pages():
-    decks = G.cached('decks', lambda: G.from_collection('tarot-cards-decks', 36, skip=r'keychain|display|wholesale'))
-    table = G.cached('table', lambda: G.by_handles([
-        'cosmic-bloom-flower-of-life-velvet-tarot-card-drawstring-bag-6x8', 'the-fool-tarot-pouch', 'purple-flower-of-life-mandala-with-tassels-6-x-8-printed-bag',
-        'crown-chakra-embroidered-velvet-pouch-black-5-x-7', 'blue-evil-eye-mandala-with-tassels-6-x-8-printed-bag', '4x4-chrysalis-velvet-pouch-bag',
-        'tarot-talisman-the-star', 'tarot-talisman-the-empress-by-lo-scarabeo', '0-the-fool-tarot-talisman', 'xviii-the-moon-tarot-talisman',
-        'sun-tarot-card-holder', 'celestial-filigree-rosewood-color-wood-box-4x-2', 'antique-wooden-chest-storage-box-green', 'acacia-wooden-cylinder-storage-box-2-75h-x-3-80d']))
+    items, by = shop_pages()
+    decks = by.get('decks', []); n_decks = sum(x['avail'] for x in decks)
+    shelf8 = [x for x in decks if x['avail'] and x['img']][:8]
     reader_pages()
-    G.product_pages(decks, 'decks', 'Decks', '/decks/', [('Home', '/')])
-    G.product_pages(table, 'table', 'Reading table', '/reading-table/', [('Home', '/')])
-    G.add('/cart/', 'Your Cart | Namaste Tarot', 'Your Namaste Tarot cart.', '<section class="page"><h1>Your cart</h1><p class="cmsg" role="status" aria-live="polite"></p><div data-cart-page><div class="cbody" data-cart-body><p>Loading your cart&hellip;</p></div></div><noscript><p>The cart needs JavaScript. Call <a href="tel:+12126450141">212-645-0141</a> to order by phone.</p></noscript><p><a href="/decks/">Keep browsing decks</a></p></section>', robots='noindex', sitemap=False)
+    G.add('/cart/', 'Your Cart | Namaste Tarot', 'Your Namaste Tarot cart.', '<section class="page"><h1>Your cart</h1><p class="cmsg" role="status" aria-live="polite"></p><div data-cart-page><div class="cbody" data-cart-body><p>Loading your cart&hellip;</p></div></div><noscript><p>The cart needs JavaScript. Call <a href="tel:+12126450141">212-645-0141</a> to order by phone.</p></noscript><p><a href="/shop/">Keep shopping</a></p></section>', robots='noindex', sitemap=False)
     home = (f'<section class="hero"><div class="arch"><p class="eyebrow">Namaste Tarot &middot; 14th Street, Manhattan</p>'
             f'<h1>Have your cards read. Then take a deck home.</h1>'
             f'<p class="lede">Namaste Tarot pairs a tarot reading with the tools of the craft. Sit with one of our readers for fifteen minutes or a full hour, '
@@ -109,15 +157,15 @@ def pages():
             f'<p><a class="pill big" href="/readers/">Book a tarot reading</a> <a class="ghost" href="/decks/">See the decks</a></p></div></section>'
             f'<section class="trio"><article><h2>A reading</h2><p>Sessions come in 15-minute steps, up to a full hour. Most readers start at about $35 for 15 minutes, and you confirm the figure before paying.</p><a href="/readings/">How readings work here</a></article>'
             f'<article><h2>A reader</h2><p>Some readers use the Thoth deck, some add Lenormand or astrology, and some read mostly by intuition. Pick by style.</p><a href="/readers/">Readers by deck and style</a></article>'
-            f'<article><h2>A deck</h2><p>{len(decks)} tarot decks in stock, with prices checked every day. Add one to your cart from any page.</p><a href="/decks/">Browse decks</a></article></section>'
-            f'<section class="band"><h2>On the shelf this week</h2><ul class="grid">' + ''.join(card(x, 'decks') for x in decks[:8]) + '</ul>'
-            f'<p class="more"><a href="/decks/">All {len(decks)} decks</a> &middot; <a href="/reading-table/">Pouches, talismans and boxes</a></p></section>'
+            f'<article><h2>A deck</h2><p>{n_decks} tarot decks in stock, plus oracle decks, sets and books, with prices checked every day.</p><a href="/shop/">Visit the shop</a></article></section>'
+            f'<section class="band"><h2>On the shelf this week</h2><ul class="grid">' + ''.join(S.card(x, 'decks') for x in shelf8) + '</ul>'
+            f'<p class="more"><a href="/decks/">All {len(decks)} tarot decks</a> &middot; <a href="/oracle-decks/">Oracle decks</a> &middot; <a href="/books/">Tarot books</a> &middot; <a href="/reading-table/">Cloths, pouches and boxes</a></p></section>'
             f'<section class="note"><h2>Where to find us</h2><p>Namaste Tarot readings happen at tables inside Namaste Bookshop on West 14th Street, '
             f'and in private rooms upstairs at 80 Fifth Avenue, Suite 1104. Orders placed here ship from New York.</p>'
             f'<p><a href="{G.DIRECTIONS}">Directions</a> &middot; <a href="tel:{G.TEL}">{G.PHONE}</a></p></section>')
     G.add('/', 'Namaste Tarot | Tarot Readings & Tarot Decks, 14th Street NYC',
           'Book a tarot reading with Namaste Tarot on West 14th Street in Manhattan, or order a tarot deck, pouch or talisman from our shelf.', home,
-          ld=[G.shop_ld(), G.product_ld(decks[:8], 'Tarot decks on the shelf this week')])
+          ld=[G.shop_ld(), G.product_ld_items(shelf8, 'Tarot decks on the shelf this week')])
     faq = [
         ('Do I have to book ahead?', 'Booking ahead holds a time. Same-day readings are possible when a reader has an open slot; each reader\'s profile links to their live openings, or call ' + G.PHONE + ' to ask.'),
         ('Can I pay at the shop instead of online?', 'If online booking gives you trouble, you can come in and pay cash. Call first so a reader can be held for you.'),
@@ -144,18 +192,6 @@ def pages():
           f'<section class="page"><h1>Readers, grouped by how they read</h1><p class="lede">Schedules change week to week, so each profile\'s booking button shows the real open times.</p>{rd}'
           f'<p class="small">If a reader is not listed, they are not taking bookings right now.</p></section>',
           crumbs=[('Home', '/'), ('Readers', '/readers/')])
-    G.add('/decks/', f'Tarot Decks in Stock ({len(decks)}) | Namaste Tarot',
-          'Tarot decks in stock at Namaste Tarot, with prices checked daily. Add to cart here; orders ship from New York City.',
-          f'<section class="page"><h1>Tarot decks in stock</h1><p class="lede">Our tarot shelf. The list and prices update every morning; anything that sells out drops off.</p>'
-          f'<ul class="grid">' + ''.join(card(x, 'decks') for x in decks) + '</ul>'
-          f'<p class="small">Add decks to your cart and check out when you are ready. Shipping and tax are shown at checkout.</p></section>',
-          ld=[G.product_ld(decks, 'Tarot decks in stock')], crumbs=[('Home', '/'), ('Decks', '/decks/')])
-    G.add('/reading-table/', 'Tarot Pouches, Talismans & Card Boxes | Namaste Tarot',
-          'Velvet tarot pouches, Lo Scarabeo tarot talismans, a card holder and small wooden boxes for keeping a deck, from Namaste Tarot.',
-          f'<section class="page"><h1>For the reading table</h1><p class="lede">Small things that sit around a deck: a pouch to carry it, a box to keep it, a holder to stand a card up while you think about it.</p>'
-          f'<ul class="grid">' + ''.join(card(x, 'table') for x in table) + '</ul>'
-          f'<p class="small">Sizes are in each product name. None of these is needed to read tarot; they just keep the cards in good shape.</p></section>',
-          ld=[G.product_ld(table, 'Tarot reading-table accessories')], crumbs=[('Home', '/'), ('Reading table', '/reading-table/')])
     G.add('/about/', 'About Namaste Tarot',
           'Namaste Tarot is a tarot reading and tarot goods brand on West 14th Street, Manhattan, operated by Wealth Edge Ventures Inc.',
           f'<section class="page"><h1>About Namaste Tarot</h1><p>Namaste Tarot gives tarot readings and sells tarot decks and reading-table goods. Readings happen at tables inside Namaste Bookshop, {G.ADDR}, near Union Square, '
@@ -170,12 +206,13 @@ def pages():
 NOTFOUND_DESC = 'That page is not on namastetarot.com.'
 NOTFOUND = f'<section class="page"><h1>That card is not in this deck</h1><p>The page you wanted is not here. Try <a href="/readings/">readings</a>, <a href="/decks/">decks</a> or the <a href="/">home page</a>.</p></section>'
 
-CSS = """:root{--ink:#2a1640;--gold:#d9a441;--paper:#fbf7ef;--soft:#efe6f5;--text:#2b2433;--accent:#2a1640;--onaccent:#fff;--onink:#fff;--body:Lora,Georgia,serif;--display:Cinzel,Georgia,serif;--btnr:99px;--r:10px;--line:#ddd3e8;--muted:#5d5566;--focus:#d9a441}
+CSS = """.len td:first-child,.len th:first-child{white-space:nowrap}
+:root{--ink:#2a1640;--gold:#d9a441;--paper:#fbf7ef;--soft:#efe6f5;--text:#2b2433;--accent:#2a1640;--onaccent:#fff;--onink:#fff;--body:Lora,Georgia,serif;--display:Cinzel,Georgia,serif;--btnr:99px;--r:10px;--line:#ddd3e8;--muted:#5d5566;--focus:#d9a441}
 .mast{position:relative}.cartbtn{position:absolute;right:14px;top:14px;color:#fff;width:30px;height:30px;display:block}.cartbtn svg{width:28px;height:28px}.cartn{position:absolute;top:-6px;right:-8px;background:var(--gold);color:var(--ink);border-radius:99px;font:700 .7rem sans-serif;padding:2px 6px}
-button.buy{border:0;cursor:pointer;font:inherit;font-weight:700;margin-top:6px}.ghost.sm{padding:2px 0;font-size:.85rem}
+.ghost.sm{padding:2px 0;font-size:.85rem}
 .rhead{display:flex;gap:16px;align-items:center}.rhead img{width:150px;height:150px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);flex:none}.rhead h1{margin:0}p.svc{background:#fff;padding:12px 14px;border-radius:8px;border-left:4px solid var(--gold)}
 .btn{display:inline-block;background:var(--ink);color:#fff;padding:13px 22px;border-radius:99px;text-decoration:none;font-weight:600;text-align:center}.ccheck{display:block}
-.prod{display:grid;gap:22px}@media(min-width:760px){.prod{grid-template-columns:1fr 1fr;align-items:start}}.pimg img{width:100%;height:auto;background:#fff;border-radius:12px;object-fit:contain}.price.big{font-size:1.4rem}button.pill{border:0;cursor:pointer;font:inherit;font-weight:600}.facts{padding-left:1.1em}
+button.pill{border:0;cursor:pointer;font:inherit;font-weight:600}.facts{padding-left:1.1em}
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--text);font:17px/1.65 Lora,Georgia,serif;padding-bottom:64px}
 a{color:#6a3c96}h1,h2,h3{font-family:Cinzel,Georgia,serif;color:var(--ink);line-height:1.2}h1{font-size:clamp(1.8rem,6vw,2.8rem);margin:.3em 0}
 .skip{position:absolute;left:-999px}.skip:focus{left:8px;top:8px;background:#fff;padding:8px}
@@ -191,11 +228,7 @@ main{max-width:1060px;margin:0 auto;padding:0 16px}
 .ghost{display:inline-block;padding:9px 14px;color:var(--ink);font-weight:600}
 .trio{display:grid;gap:14px;margin:26px 0}.trio article{background:#fff;border-top:4px solid var(--gold);padding:16px 18px;border-radius:8px;box-shadow:0 1px 3px #0001}
 @media(min-width:760px){.trio{grid-template-columns:repeat(3,1fr)}}
-.band h2,.note h2{text-align:center}.grid{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
-.pc{background:#fff;border-radius:10px;padding:10px;display:flex;flex-direction:column;box-shadow:0 1px 3px #0001}.pc img{width:100%;height:auto;aspect-ratio:1;object-fit:contain}
-.pc h3{font:600 .88rem/1.35 Lora,serif;margin:.5em 0;flex:1}.price{margin:0 0 .5em;font-weight:600}.buy{background:var(--gold);color:var(--ink);text-align:center;padding:8px;border-radius:8px;text-decoration:none;font-weight:700}
-.more{text-align:center}.note{background:var(--ink);color:#efe6f5;border-radius:14px;padding:20px;margin:28px 0}.note h2{color:var(--gold)}.note a{color:var(--gold)}
+.band h2,.note h2{text-align:center}p.more{text-align:center}.note{background:var(--ink);color:#efe6f5;border-radius:14px;padding:20px;margin:28px 0}.note h2{color:var(--gold)}.note a{color:var(--gold)}
 .rlist{list-style:none;padding:0;display:grid;gap:12px}@media(min-width:760px){.rlist{grid-template-columns:1fr 1fr}}
 .rc{display:flex;gap:14px;background:#fff;border-radius:12px;padding:14px;border-left:4px solid var(--gold)}.rc img{border-radius:50%;object-fit:cover;flex:none}.rc h3{margin:0 0 .2em;font-size:1.05rem}.rc p{margin:.2em 0}.from{font-weight:600;color:#7d5c18}
 .len{border-collapse:collapse;width:100%}.len td,.len th{border-bottom:1px solid #ddd3e8;padding:8px;text-align:left}.steps li{margin:.4em 0}
