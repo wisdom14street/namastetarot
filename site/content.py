@@ -138,7 +138,7 @@ a{color:#6a3c96}h1,h2,h3{font-family:Cinzel,Georgia,serif;color:var(--ink);line-
 .skip{position:absolute;left:-999px}.skip:focus{left:8px;top:8px;background:#fff;padding:8px}
 .mast{background:var(--ink);color:#fff;text-align:center;padding:14px 12px 0}.seal{display:inline-flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font:700 1.3rem Cinzel,serif;letter-spacing:.06em}
 .seal svg{width:34px;height:34px;color:var(--gold)}.seal b{color:var(--gold)}
-.menu{display:flex;gap:4px;overflow-x:auto;justify-content:center;padding:10px 0 12px;scrollbar-width:none}.menu a{color:#eadff5;text-decoration:none;padding:6px 12px;border-radius:99px;font-size:.92rem;white-space:nowrap}
+.menu{display:flex;gap:4px;overflow-x:auto;justify-content:flex-start;padding:10px 0 12px;scrollbar-width:none}.menu a{color:#eadff5;text-decoration:none;padding:6px 12px;border-radius:99px;font-size:.92rem;white-space:nowrap}
 .menu a[aria-current]{background:var(--gold);color:var(--ink)}
 main{max-width:1060px;margin:0 auto;padding:0 16px}
 .hero{padding:28px 0 8px}.arch{background:linear-gradient(180deg,var(--soft),#fff);border:2px solid var(--gold);border-radius:200px 200px 18px 18px;padding:56px 22px 30px;text-align:center}
@@ -159,5 +159,5 @@ main{max-width:1060px;margin:0 auto;padding:0 16px}
 .faq dt{font-weight:600;margin-top:1em;color:var(--ink)}.faq dd{margin:.2em 0 0}.small{font-size:.88rem;color:#5d5566}
 .foot{background:#1d0f2e;color:#d9cfe6;display:grid;gap:18px;padding:28px 18px;margin-top:36px}.foot a{color:var(--gold)}@media(min-width:760px){.foot{grid-template-columns:repeat(3,1fr);padding:32px 6vw}}
 .dock{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--ink);z-index:9}.dock a{flex:1;text-align:center;color:#fff;padding:14px;text-decoration:none;font-weight:600}.dock a:first-child{background:var(--gold);color:var(--ink)}
-@media(min-width:900px){.dock{display:none}body{padding-bottom:0}}
+@media(min-width:900px){.dock{display:none}body{padding-bottom:0}.menu{justify-content:center}}
 """
