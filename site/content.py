@@ -174,6 +174,7 @@ CSS = """:root{--ink:#2a1640;--gold:#d9a441;--paper:#fbf7ef;--soft:#efe6f5;--tex
 .mast{position:relative}.cartbtn{position:absolute;right:14px;top:14px;color:#fff;width:30px;height:30px;display:block}.cartbtn svg{width:28px;height:28px}.cartn{position:absolute;top:-6px;right:-8px;background:var(--gold);color:var(--ink);border-radius:99px;font:700 .7rem sans-serif;padding:2px 6px}
 button.buy{border:0;cursor:pointer;font:inherit;font-weight:700;margin-top:6px}.ghost.sm{padding:2px 0;font-size:.85rem}
 .rhead{display:flex;gap:16px;align-items:center}.rhead img{width:150px;height:150px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);flex:none}.rhead h1{margin:0}p.svc{background:#fff;padding:12px 14px;border-radius:8px;border-left:4px solid var(--gold)}
+.btn{display:inline-block;background:var(--ink);color:#fff;padding:13px 22px;border-radius:99px;text-decoration:none;font-weight:600;text-align:center}.ccheck{display:block}
 .prod{display:grid;gap:22px}@media(min-width:760px){.prod{grid-template-columns:1fr 1fr;align-items:start}}.pimg img{width:100%;height:auto;background:#fff;border-radius:12px;object-fit:contain}.price.big{font-size:1.4rem}button.pill{border:0;cursor:pointer;font:inherit;font-weight:600}.facts{padding-left:1.1em}
 *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--text);font:17px/1.65 Lora,Georgia,serif;padding-bottom:64px}
 a{color:#6a3c96}h1,h2,h3{font-family:Cinzel,Georgia,serif;color:var(--ink);line-height:1.2}h1{font-size:clamp(1.8rem,6vw,2.8rem);margin:.3em 0}
