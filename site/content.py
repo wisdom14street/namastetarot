@@ -144,7 +144,7 @@ def shop_pages():
                 h1, f'<p>{intro}</p>', its, KINDS, [('Home', '/'), ('Shop', '/shop/'), (label, path)])
         for x in its:
             S.product_page(x, slug, label, path, its, [('Home', '/'), ('Shop', '/shop/')], p_intro(x), meta=p_meta(x))
-    S.search_page('/shop/')
+    S.search_page('/shop/', intro='Search more than 1,800 decks, books and table goods by name, artist or publisher.')
     hub = ('<section class="shop"><div class="shead"><h1>The Namaste Tarot shop</h1><p>Decks, books and the things that go around them. '
            'Add anything to your cart from the shelf or the product page; checkout is one secure step at the end.</p></div>' + S.search_box('Search decks, books and accessories') + '<ul class="shelves">'
            + ''.join(f'<li><a href="{path}"><b>{label}</b><span>{len(by.get(slug, []))} items, {sum(x["avail"] for x in by.get(slug, []))} in stock</span></a></li>' for slug, path, _, label, _, _ in SHELVES)
