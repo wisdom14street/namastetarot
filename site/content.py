@@ -107,7 +107,7 @@ def pages():
             f'<p class="lede">Namaste Tarot pairs a tarot reading with the tools of the craft. Sit with one of our readers for fifteen minutes or a full hour, '
             f'then choose a deck, pouch or talisman from our shelf and order it right here.</p>'
             f'<p><a class="pill big" href="/readers/">Book a tarot reading</a> <a class="ghost" href="/decks/">See the decks</a></p></div></section>'
-            f'<section class="trio"><article><h2>A reading</h2><p>Sessions come in quarter-hour steps, up to a full hour. Most readers start at about $35 for a quarter hour, and you confirm the figure before paying.</p><a href="/readings/">How readings work here</a></article>'
+            f'<section class="trio"><article><h2>A reading</h2><p>Sessions come in 15-minute steps, up to a full hour. Most readers start at about $35 for 15 minutes, and you confirm the figure before paying.</p><a href="/readings/">How readings work here</a></article>'
             f'<article><h2>A reader</h2><p>Some readers use the Thoth deck, some add Lenormand or astrology, and some read mostly by intuition. Pick by style.</p><a href="/readers/">Readers by deck and style</a></article>'
             f'<article><h2>A deck</h2><p>{len(decks)} tarot decks in stock, with prices checked every day. Add one to your cart from any page.</p><a href="/decks/">Browse decks</a></article></section>'
             f'<section class="band"><h2>On the shelf this week</h2><ul class="grid">' + ''.join(card(x, 'decks') for x in decks[:8]) + '</ul>'
@@ -126,7 +126,7 @@ def pages():
     ]
     readings = (f'<section class="page"><h1>Tarot readings at Namaste Tarot</h1><p class="lede">A Namaste Tarot reading is a seat at a small table on 14th Street with one reader, one deck and your question.</p>'
                 f'<h2>Choosing a length</h2><table class="len"><tr><th>Length</th><th>Good for</th></tr>'
-                f'<tr><td>A quarter hour</td><td>One clear question and a short spread</td></tr><tr><td>30 minutes</td><td>A few related questions, or one bigger spread</td></tr>'
+                f'<tr><td>15 minutes</td><td>One clear question and a short spread</td></tr><tr><td>30 minutes</td><td>A few related questions, or one bigger spread</td></tr>'
                 f'<tr><td>45 minutes</td><td>Two or three areas of life, with time to talk</td></tr><tr><td>60 minutes</td><td>A full look at where things stand, or a reading combined with astrology</td></tr></table>'
                 f'<p>Each reader chooses their own rates. Many charge about $35 for 15 minutes and $130 to $140 for an hour; a few specialists charge more. You always see the cost on the booking screen first.</p>'
                 f'<h2>Booking</h2><ol class="steps"><li>Pick a reader on the <a href="/readers/">readers page</a> and open their profile.</li>'
